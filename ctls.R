@@ -12,9 +12,9 @@ c. <- as.factor
 # helper variables for formulae
 taus <- "tau_1 + tau_2 + tau_3 + tau_4 + tau_5 + tau_7 + tau_8 + tau_9 + tau_10" # beta_6 defined to be 0, so only estimate tau != 6
 covs <- "age + spanish + schooling + hhmale + nchild5 + urban + c.(age_sac)*i.(year) + c.(np)*i.(year) + i.(departamento)*i.(year)" # 'a*b' equivalent to 'a + b + a:b'
+clusters <- "(1 | departamento) + (1 | municipio)"
 
-
-prepare <- function(data, tau_threshold = -5) { 
+prepare <- function(data) { 
   # set up dummy variables and controls for regressions
   return (data 
    # keep only eligible households for DiD
@@ -31,27 +31,14 @@ prepare <- function(data, tau_threshold = -5) {
 }
 
 estimate <- function(outcome, data){
-  model <- lmer(
-    nwork ~ tau_1 + tau_2 + tau_3 + tau_4 + tau_5 + tau_7 + tau_8 + tau_9 + tau_10 + (1 | departamento) + (1 | municipio), 
-    weights = factor, data = data)
-  
-  return (summary(model))
+  return(lmer(reformulate(c(taus, covs, clusters), outcome), weights = factor, data = data))
 }
 
-extract_coefs <- function(model) { 
-
-}
-
-plot_coefs <- function(coefs) {
-  
-}
-
-run_estimates <- function(data, tau_threshold, min_min_schooling, max_min_schooling){
+run_estimates <- function(data, outcomes, titles, tau_threshold = -5, min_min_schooling = 1, max_min_schooling = 9){
   data <- prepare(data, tau_threshold)
-  for (outcome in c()) {
-    model <- estimate(outcome, data)
-    coefs <- extract_coefs(model)
-    plot_coefs(coefs)
+  for (outcome in c("nwork", "w_hoursw_t", "work_head", "w_hoursw_head")) {
+    model <- estimate(outcome, data %>% filter(min_min_schooling <= min_schooling & min_schooling < max_min_schooling))
+    summary(model)
   }
 }
 
